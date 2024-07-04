@@ -122,11 +122,11 @@ def crop_and_save_segmented_labels(image_path, results, output_dir):
     image = cv2.imread(image_path)
     os.makedirs(output_dir, exist_ok=True)
     
-    masks = results.masks.data.numpy()  # Get the masks as numpy arrays
-    labels = results.masks.cls.numpy()  # Get the corresponding labels
+    masks = results.masks.data.cpu().numpy()  # Get the masks as numpy arrays
+    class_ids = results.masks.cls.cpu().numpy()  # Get the corresponding class IDs
 
-    for idx, (mask, label_index) in enumerate(zip(masks, labels)):
-        label = class_labels[int(label_index)]
+    for idx, (mask, class_id) in enumerate(zip(masks, class_ids)):
+        label = class_labels[int(class_id)]
         
         # Convert mask to binary format
         binary_mask = (mask > 0.5).astype(np.uint8) * 255
@@ -151,5 +151,6 @@ output_dir = 'path_to_save_cropped_labels'
 results = model(image_path)
 
 # Crop and save segmented labels
+crop_and_save_segmented_labels(image_path, results[0], output_dir)
 crop_and_save_segmented_labels(image_path, results[0], output_dir)
 
