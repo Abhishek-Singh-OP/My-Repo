@@ -25,3 +25,45 @@ results = model(image_path)
 
 # Crop and save detected labels
 crop_and_save_labels(image_path, results[0].boxes, output_dir)
+
+
+
+
+
+
+
+import cv2
+import os
+import numpy as np
+from ultralytics import YOLO
+
+def crop_and_save_segmented_labels(image_path, masks, labels, output_dir):
+    image = cv2.imread(image_path)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for idx, (mask, label) in enumerate(zip(masks, labels)):
+        # Find contours of the mask
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        x, y, w, h = cv2.boundingRect(contours[0])
+        
+        # Crop the image using the bounding box
+        cropped_image = image[y:y+h, x:x+w]
+        output_path = os.path.join(output_dir, f"label_{label}_{idx}.png")
+        cv2.imwrite(output_path, cropped_image)
+
+# Load YOLOv8 segmentation model
+model = YOLO('path_to_your_trained_segmentation_model.pt')
+
+# Path to the image you want to process
+image_path = 'path_to_your_image.jpg'
+output_dir = 'path_to_save_cropped_labels'
+
+# Perform segmentation
+results = model(image_path)
+
+# Extract masks and labels
+masks = results[0].masks.data.numpy()
+labels = results[0].masks.labels
+
+# Crop and save segmented labels
+crop_and_save_segmented_labels(image_path, masks, labels, output_dir)
