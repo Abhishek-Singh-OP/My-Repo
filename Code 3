@@ -10,6 +10,7 @@ model = YOLO('best.pt')
 # Load the sample image
 image_path = 'path/to/your/sample_image.jpg'
 image = cv2.imread(image_path)
+image_height, image_width = image.shape[:2]
 
 # Perform inference
 results = model.predict(source=image_path, conf=0.25, save=False, save_txt=False)
@@ -24,9 +25,11 @@ for result in results:
     classes = result.boxes.cls.cpu().numpy()  # Convert class indices to numpy array
 
     for i, (mask, cls) in enumerate(zip(masks, classes)):
+        # Resize mask to match the original image dimensions
+        mask = cv2.resize(mask, (image_width, image_height), interpolation=cv2.INTER_NEAREST)
+
         # Convert mask to binary format
-        mask = mask.astype(np.uint8)
-        mask[mask > 0] = 255  # Ensure binary mask
+        mask = (mask > 0).astype(np.uint8) * 255
 
         # Create a mask image with the same dimensions as the original image
         mask_image = np.zeros_like(image, dtype=np.uint8)
