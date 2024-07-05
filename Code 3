@@ -1,3 +1,11 @@
+for result in results:
+    for i, (mask, cls) in enumerate(zip(result.masks.data, result.boxes.cls)):
+        mask = mask.cpu().numpy()
+
+
+
+
+
 import cv2
 import torch
 from ultralytics import YOLO
