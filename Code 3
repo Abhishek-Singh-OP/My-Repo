@@ -20,18 +20,24 @@ os.makedirs(output_dir, exist_ok=True)
 
 # Iterate over the detected masks
 for result in results:
-    for i, (mask, cls) in enumerate(zip(result.masks.data, result.boxes.cls)):
-        mask = mask.cpu().numpy()  # Convert the mask to a numpy array if needed
+    masks = result.masks.data.cpu().numpy()  # Convert masks to numpy array
+    classes = result.boxes.cls.cpu().numpy()  # Convert class indices to numpy array
 
-        # Create a mask image
+    for i, (mask, cls) in enumerate(zip(masks, classes)):
+        # Convert mask to binary format
+        mask = mask.astype(np.uint8)
+        mask[mask > 0] = 255  # Ensure binary mask
+
+        # Create a mask image with the same dimensions as the original image
         mask_image = np.zeros_like(image, dtype=np.uint8)
-        mask_image[mask == 1] = 255
+        for c in range(3):  # Apply mask to each channel
+            mask_image[:, :, c] = mask
 
         # Extract the bounding box for cropping
-        x, y, w, h = cv2.boundingRect(mask.astype(np.uint8))
+        x, y, w, h = cv2.boundingRect(mask)
 
         # Crop the mask area from the image
-        cropped_image = cv2.bitwise_and(image, image, mask=mask.astype(np.uint8))
+        cropped_image = cv2.bitwise_and(image, mask_image)
         cropped_image = cropped_image[y:y+h, x:x+w]
 
         # Convert class index to class name if needed
@@ -42,53 +48,5 @@ for result in results:
         cv2.imwrite(output_path, cropped_image)
 
         print(f'Cropped image saved as {output_path}')
-
-print('Cropping completed.')
-
-
-
-
-import cv2
-import torch
-from ultralytics import YOLO
-import numpy as np
-import os
-
-# Load the YOLOv8 model
-model = YOLO('best.pt')
-
-# Load the sample image
-image_path = 'path/to/your/sample_image.jpg'
-image = cv2.imread(image_path)
-
-# Perform inference
-results = model.predict(source=image_path, conf=0.25)
-
-# Ensure output directory exists
-output_dir = 'output_crops'
-os.makedirs(output_dir, exist_ok=True)
-
-# Iterate over the detected masks
-for i, result in enumerate(results[0]):
-    label = result['label']
-    mask = result['mask']
-    mask = mask.cpu().numpy()  # Convert the mask to a numpy array if needed
-
-    # Create a mask image
-    mask_image = np.zeros_like(image)
-    mask_image[mask == 1] = 255
-
-    # Extract the bounding box for cropping
-    x, y, w, h = cv2.boundingRect(mask.astype(np.uint8))
-
-    # Crop the mask area from the image
-    cropped_image = cv2.bitwise_and(image, image, mask=mask.astype(np.uint8))
-    cropped_image = cropped_image[y:y+h, x:x+w]
-
-    # Save the cropped image
-    output_path = os.path.join(output_dir, f'{label}_{i}.png')
-    cv2.imwrite(output_path, cropped_image)
-
-    print(f'Cropped image saved as {output_path}')
 
 print('Cropping completed.')
