@@ -2,6 +2,7 @@ import cv2
 import pytesseract
 from PIL import Image
 import os
+from IPython.display import display
 
 # Ensure pytesseract can be found
 pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'  # Update this path based on your Tesseract installation
@@ -14,122 +15,19 @@ def extract_text_from_image(image_path):
     gray_image = image.convert('L')
     # Use pytesseract to extract text
     text = pytesseract.image_to_string(gray_image)
-    return text
+    return text, gray_image
 
 # Define the image path
 image_path = 'path/to/your/cropped_label_image.png'  # Update this path to the specific image
 
 # Check if the image name contains "label" or "open_text"
 if 'label' in image_path or 'open_text' in image_path:
-    extracted_text = extract_text_from_image(image_path)
+    extracted_text, gray_image = extract_text_from_image(image_path)
     print(f'Text from {os.path.basename(image_path)}:')
     print(extracted_text)
+    display(gray_image)
     print('-' * 40)
 else:
     print('The specified image does not contain "label" or "open_text" in its filename.')
 
 print('Text extraction completed.')
-
-
-
-
-
-
-
-
-
-import cv2
-import pytesseract
-from PIL import Image
-import os
-
-# Define the directory containing the cropped label images
-cropped_labels_dir = 'output_crops'
-
-# Ensure pytesseract can be found
-pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'  # Update this path based on your Tesseract installation
-
-# Function to extract text from an image using pytesseract
-def extract_text_from_image(image_path):
-    # Open the image using PIL
-    image = Image.open(image_path)
-    # Convert the image to grayscale
-    gray_image = image.convert('L')
-    # Use pytesseract to extract text
-    text = pytesseract.image_to_string(gray_image)
-    return text
-
-# Iterate through the cropped label images
-for filename in os.listdir(cropped_labels_dir):
-    if 'label' in filename or 'open_text' in filename:
-        image_path = os.path.join(cropped_labels_dir, filename)
-        extracted_text = extract_text_from_image(image_path)
-        print(f'Text from {filename}:')
-        print(extracted_text)
-        print('-' * 40)
-
-print('Text extraction completed.')
-
-
-
-
-
-
-
-
-
-import cv2
-import torch
-from ultralytics import YOLO
-import numpy as np
-import os
-
-# Load the YOLOv8 model
-model = YOLO('best.pt')
-
-# Load the sample image
-image_path = 'path/to/your/sample_image.jpg'
-image = cv2.imread(image_path)
-image_height, image_width = image.shape[:2]
-
-# Perform inference
-results = model.predict(source=image_path, conf=0.25, save=False, save_txt=False)
-
-# Ensure output directory exists
-output_dir = 'output_crops'
-os.makedirs(output_dir, exist_ok=True)
-
-# Iterate over the detected masks
-for result in results:
-    masks = result.masks.data.cpu().numpy()  # Convert masks to numpy array
-    classes = result.boxes.cls.cpu().numpy()  # Convert class indices to numpy array
-
-    for i, (mask, cls) in enumerate(zip(masks, classes)):
-        # Resize mask to match the original image dimensions
-        mask = cv2.resize(mask, (image_width, image_height), interpolation=cv2.INTER_NEAREST)
-
-        # Convert mask to binary format
-        mask = (mask > 0).astype(np.uint8) * 255
-
-        # Create a mask image with the same dimensions as the original image
-        mask_image = np.zeros_like(image, dtype=np.uint8)
-        for c in range(3):  # Apply mask to each channel
-            mask_image[:, :, c] = mask
-
-        # Extract the bounding box for cropping
-        x, y, w, h = cv2.boundingRect(mask)
-
-        # Crop the mask area from the image
-        cropped_image = cv2.bitwise_and(image, mask_image)
-        cropped_image = cropped_image[y:y+h, x:x+w]
-
-        # Convert class index to class name if needed
-        label = model.names[int(cls)]
-
-        # Save the cropped image
-        output_path = os.path.join(output_dir, f'{label}_{i}.png')
-        cv2.imwrite(output_path, cropped_image)
-
-        print(f'Cropped image saved as {output_path}')
-
-print('Cropping completed.')
