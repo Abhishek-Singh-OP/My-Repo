@@ -1,38 +1,46 @@
 import pytesseract
 from PIL import Image
-import ipywidgets as widgets
-from IPython.display import display, Image as IPImage
+import os
+from IPython.display import display
 
 # Ensure pytesseract can be found
 pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'  # Update this path based on your Tesseract installation
 
 # Function to extract text from an image using pytesseract
-def extract_text_from_image(image):
+def extract_text_from_image(image_path):
+    # Check if the file exists
+    if not os.path.exists(image_path):
+        print(f"File not found: {image_path}")
+        return None, None
+    
+    # Open the image using PIL
+    try:
+        image = Image.open(image_path)
+    except Exception as e:
+        print(f"Error opening image: {e}")
+        return None, None
+
     # Convert the image to grayscale
     gray_image = image.convert('L')
     # Use pytesseract to extract text
     text = pytesseract.image_to_string(gray_image)
     return text, gray_image
 
-# Upload widget
-upload = widgets.FileUpload(accept='image/*', multiple=False)
+# Define the image path
+image_path = 'path/to/your/cropped_label_image.png'  # Update this path to the specific image
 
-# Function to handle file upload and text extraction
-def handle_upload(change):
-    for filename, file_info in upload.value.items():
-        print(f"Processing file: {filename}")  # Debug print
-        image = Image.open(file_info['content'])
-        display(IPImage(data=file_info['content']))  # Display the uploaded image
+# Ensure the path is absolute or correctly formatted
+image_path = os.path.abspath(image_path)
 
-        if 'label' in filename or 'open_text' in filename:
-            extracted_text, gray_image = extract_text_from_image(image)
-            print(f'Text from {filename}:')
-            print(extracted_text)
-            display(gray_image)
-            print('-' * 40)
-        else:
-            print('The specified image does not contain "label" or "open_text" in its filename.')
-        print('Text extraction completed.')
+# Check if the image name contains "label" or "open_text"
+if 'label' in os.path.basename(image_path) or 'open_text' in os.path.basename(image_path):
+    extracted_text, gray_image = extract_text_from_image(image_path)
+    if extracted_text is not None:
+        print(f'Text from {os.path.basename(image_path)}:')
+        print(extracted_text)
+        display(gray_image)
+        print('-' * 40)
+else:
+    print('The specified image does not contain "label" or "open_text" in its filename.')
 
-upload.observe(handle_upload, names='value')
-display(upload)
+print('Text extraction completed.')
