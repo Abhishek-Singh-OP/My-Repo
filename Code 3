@@ -20,7 +20,10 @@ upload = widgets.FileUpload(accept='image/*', multiple=False)
 # Function to handle file upload and text extraction
 def handle_upload(change):
     for filename, file_info in upload.value.items():
+        print(f"Processing file: {filename}")  # Debug print
         image = Image.open(file_info['content'])
+        display(IPImage(data=file_info['content']))  # Display the uploaded image
+
         if 'label' in filename or 'open_text' in filename:
             extracted_text, gray_image = extract_text_from_image(image)
             print(f'Text from {filename}:')
