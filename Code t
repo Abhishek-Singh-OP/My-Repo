@@ -1,0 +1,29 @@
+# Assuming OCR extracted text is stored in `extracted_text`
+extracted_text = "Your extracted text here"
+
+# Define the specific label text to check for
+specific_label_text = "your specific text here"
+
+# Placeholder function to check for the typeface and size
+# In practice, this would require image processing libraries or specialized OCR tools that can provide font information
+def check_font_and_size(text_image, required_typeface, required_size):
+    # This is a placeholder; you would need to implement font and size checking here
+    # using a suitable library or service
+    detected_typeface = "DIN 1451-4"  # Example detected typeface
+    detected_size = "medium"          # Example detected size
+    
+    return detected_typeface == required_typeface and detected_size == required_size
+
+# Perform the checks
+if specific_label_text in extracted_text:
+    print("Specific label text found.")
+
+    # Assuming `text_image` is the image containing the text
+    text_image = None  # Replace with actual image object
+    
+    if check_font_and_size(text_image, "DIN 1451-4", "medium") or check_font_and_size(text_image, "ISO 3098-BVL", "medium"):
+        print("Text matches the required typeface and size.")
+    else:
+        print("Text does not match the required typeface and size.")
+else:
+    print("Specific label text not found.")
