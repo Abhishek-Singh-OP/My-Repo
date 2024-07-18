@@ -1,36 +1,39 @@
-import cv2
-import easyocr
 import re
 
-# Initialize the OCR tool
-ocr = easyocr.Reader(['en'])
+# Pre-extracted text
+extracted_text = """
+Your pre-extracted text goes here.
+"""
 
-# Define the validation patterns
-din_pattern = re.compile(r'DIN-1451-H\s*\d+(\.\d+)?')
+# Define the flexible DIN-1451-H pattern
+din_pattern = re.compile(r'DIN-1451[-–\s]?H[=\s]?(\d+|\d+,\d+)')
 iso_pattern = re.compile(r'ISO 3097-BVL')
 mbn_pattern = re.compile(r'MBN')
 
-# Function to extract text from an image
-def extract_text(image_path):
-    image = cv2.imread(image_path)
-    ocr_results = ocr.readtext(image, detail=0)
-    return ocr_results
-
 # Function to validate the extracted text
-def validate_texts(texts):
-    for text in texts:
-        contains_din = bool(din_pattern.search(text))
-        contains_iso = bool(iso_pattern.search(text))
-        contains_mbn = bool(mbn_pattern.search(text))
+def validate_texts(text):
+    contains_din = din_pattern.search(text)
+    contains_iso = bool(iso_pattern.search(text))
+    contains_mbn = bool(mbn_pattern.search(text))
+    
+    # Debug: print whether each pattern was found
+    print(f"Contains DIN-1451-H: {bool(contains_din)}")
+    print(f"Contains ISO 3097-BVL: {contains_iso}")
+    print(f"Contains MBN: {contains_mbn}")
 
-        if (contains_din or contains_iso) and contains_mbn:
-            print(f"Validation Error: '{text}' contains both DIN/ISO and MBN")
+    if contains_din:
+        din_match = contains_din.group(1)
+        # Add your number validation logic here if needed
+        # Example of a check for the number format
+        if not re.match(r'^\d+,\d+$', din_match) and not re.match(r'^\d+$', din_match):
+            print(f"Validation Error: DIN-1451-H number format incorrect: {din_match}")
+        else:
+            print(f"DIN-1451-H number format correct: {din_match}")
+    
+    if (contains_din or contains_iso) and contains_mbn:
+        print(f"Validation Error: Text contains both DIN/ISO and MBN")
+    else:
+        print(f"Text is valid")
 
-# Function to process an image
-def process_image(image_path):
-    extracted_texts = extract_text(image_path)
-    validate_texts(extracted_texts)
-
-# Process a sample image
-image_path = 'path_to_your_image.png'
-process_image(image_path)
+# Process the pre-extracted text
+validate_texts(extracted_text)
