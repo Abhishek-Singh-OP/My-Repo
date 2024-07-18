@@ -1,0 +1,36 @@
+import cv2
+import easyocr
+import re
+
+# Initialize the OCR tool
+ocr = easyocr.Reader(['en'])
+
+# Define the validation patterns
+din_pattern = re.compile(r'DIN-1451-H\s*\d+(\.\d+)?')
+iso_pattern = re.compile(r'ISO 3097-BVL')
+mbn_pattern = re.compile(r'MBN')
+
+# Function to extract text from an image
+def extract_text(image_path):
+    image = cv2.imread(image_path)
+    ocr_results = ocr.readtext(image, detail=0)
+    return ocr_results
+
+# Function to validate the extracted text
+def validate_texts(texts):
+    for text in texts:
+        contains_din = bool(din_pattern.search(text))
+        contains_iso = bool(iso_pattern.search(text))
+        contains_mbn = bool(mbn_pattern.search(text))
+
+        if (contains_din or contains_iso) and contains_mbn:
+            print(f"Validation Error: '{text}' contains both DIN/ISO and MBN")
+
+# Function to process an image
+def process_image(image_path):
+    extracted_texts = extract_text(image_path)
+    validate_texts(extracted_texts)
+
+# Process a sample image
+image_path = 'path_to_your_image.png'
+process_image(image_path)
