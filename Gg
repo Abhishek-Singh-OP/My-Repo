@@ -62,4 +62,42 @@ def concatenate_grouped_lines(grouped_lines):
     return concatenated_texts
 
 # Define the flexible DIN-1451-H pattern
-din_pattern = re.compile(r'DIN[-–\s]?1451[-–\s]?H[=\s]?(\d+,\d+|\d
+din_pattern = re.compile(r'DIN[-–\s]?1451[-–\s]?H[=\s]?(\d+,\d+|\d+)')
+iso_pattern = re.compile(r'ISO\s?3097[-–\s]?BVL')
+mbn_pattern = re.compile(r'MBN')
+
+# Function to validate the concatenated texts
+def validate_texts(concatenated_texts):
+    for text in concatenated_texts:
+        din_match = din_pattern.search(text)
+        iso_match = iso_pattern.search(text)
+        mbn_match = mbn_pattern.search(text)
+
+        if din_match:
+            din_value = din_match.group(1)
+            if din_value in allowed_numbers:
+                print(f"Valid DIN value found: {din_value}")
+            else:
+                print(f"Invalid DIN value: {din_value}")
+        if iso_match:
+            print("ISO 3097-BVL found.")
+        if mbn_match:
+            print("MBN found, invalid combination if DIN or ISO is present.")
+
+# Main function to execute the workflow
+def main():
+    # Fetch the OCR results from the API
+    response_data = fetch_ocr_results(api_url)
+
+    if response_data:
+        lines = response_data['data']
+        
+        # Adjust this based on the actual structure of your data
+        grouped_lines = group_lines_by_position(lines, vertical_distance_threshold)
+        concatenated_texts = concatenate_grouped_lines(grouped_lines)
+
+        # Validate the concatenated texts
+        validate_texts(concatenated_texts)
+
+if __name__ == "__main__":
+    main()
