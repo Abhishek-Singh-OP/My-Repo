@@ -29,6 +29,62 @@ valid_results = []
 invalid_results = []
 
 for result in ocr_results:
+    if isinstance(result, list) and result:
+        text = result[0]  # Assuming text is the first element in the list
+        if check_validity(text):
+            valid_results.append(result)
+        else:
+            invalid_results.append(result)
+
+# Output results
+print(f"Valid Results: {len(valid_results)}")
+print(f"Invalid Results: {len(invalid_results)}")
+
+# Optionally, you can save the results to separate files
+with open('valid_results.json', 'w') as file:
+    json.dump(valid_results, file, indent=2)
+
+with open('invalid_results.json', 'w') as file:
+    json.dump(invalid_results, file, indent=2)
+
+
+
+
+
+
+
+
+import json
+import re
+
+# Load the JSON file
+with open('paddle_ocr_output.json', 'r') as file:
+    ocr_results = json.load(file)
+
+# Define regex patterns
+din_pattern = re.compile(r'\bDIN\s+\d{4}-\d{1,2}-H\s*([1,6]|2|3|4|5|6|8|10|16|20)\b', re.IGNORECASE)
+iso_pattern = re.compile(r'\bISO\b', re.IGNORECASE)
+mbn_pattern = re.compile(r'\bMBN\b', re.IGNORECASE)
+
+# Function to check validity
+def check_validity(text):
+    has_din = din_pattern.search(text)
+    has_iso = iso_pattern.search(text)
+    has_mbn = mbn_pattern.search(text)
+    
+    # Check if text has DIN or ISO
+    if has_din or has_iso:
+        # Check if DIN or ISO is accompanied by MBN
+        if has_mbn:
+            return False  # Invalid if DIN or ISO is with MBN
+        return True  # Valid if DIN or ISO is not with MBN
+    return False  # Invalid if neither DIN nor ISO is present
+
+# Iterate through OCR results and validate
+valid_results = []
+invalid_results = []
+
+for result in ocr_results:
     text = result.get('text', '')
     if check_validity(text):
         valid_results.append(result)
