@@ -101,3 +101,95 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+import json
+import re
+
+# Allowed set of numbers after DIN-1451-H
+allowed_numbers = {'1,6', '2', '3', '4', '5', '6', '8', '10', '16', '20'}
+
+# Threshold for vertical distance to consider lines as part of the same label
+vertical_distance_threshold = 10  # Adjust based on your data
+
+# Function to load OCR result from a JSON file
+def load_ocr_results(json_file_path):
+    with open(json_file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+# Function to group lines based on vertical positioning
+def group_lines_by_position(lines, threshold):
+    grouped_lines = []
+    current_group = [lines[0]]
+
+    for i in range(1, len(lines)):
+        current_line = lines[i]
+        previous_line = lines[i - 1]
+
+        # Calculate vertical distance
+        vertical_distance = current_line['bbox'][1] - previous_line['bbox'][3]
+
+        if vertical_distance < threshold:
+            current_group.append(current_line)
+        else:
+            grouped_lines.append(current_group)
+            current_group = [current_line]
+
+    grouped_lines.append(current_group)
+    return grouped_lines
+
+# Function to concatenate grouped lines into single labels
+def concatenate_grouped_lines(grouped_lines):
+    concatenated_texts = []
+    for group in grouped_lines:
+        concatenated_text = " ".join([line['text'] for line in group])
+        concatenated_texts.append(concatenated_text)
+    return concatenated_texts
+
+# Define the flexible DIN-1451-H pattern
+din_pattern = re.compile(r'DIN[-–\s]?1451[-–\s]?H[=\s]?(\d+,\d+|\d+)')
+iso_pattern = re.compile(r'ISO\s?3097[-–\s]?BVL')
+mbn_pattern = re.compile(r'MBN')
+
+# Function to validate the concatenated texts
+def validate_texts(concatenated_texts):
+    for text in concatenated_texts:
+        din_match = din_pattern.search(text)
+        iso_match = iso_pattern.search(text)
+        mbn_match = mbn_pattern.search(text)
+
+        if din_match:
+            din_value = din_match.group(1)
+            if din_value in allowed_numbers:
+                print(f"Valid DIN value found: {din_value}")
+            else:
+                print(f"Invalid DIN value: {din_value}")
+        if iso_match:
+            print("ISO 3097-BVL found.")
+        if mbn_match:
+            print("MBN found, invalid combination if DIN or ISO is present.")
+
+# Main function to execute the workflow
+def main():
+    # Replace with the actual path to the JSON file you downloaded
+    json_file_path = "./ocr_results.json"
+
+    # Load the OCR results from the JSON file
+    response_data = load_ocr_results(json_file_path)
+
+    if response_data:
+        lines = response_data['data']
+        
+        # Adjust this based on the actual structure of your data
+        grouped_lines = group_lines_by_position(lines, vertical_distance_threshold)
+        concatenated_texts = concatenate_grouped_lines(grouped_lines)
+
+        # Validate the concatenated texts
+        validate_texts(concatenated_texts)
+
+if __name__ == "__main__":
+    main()
