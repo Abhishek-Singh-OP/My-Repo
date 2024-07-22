@@ -1,52 +1,5 @@
 import re
-
-# Pre-extracted text
-extracted_text = """
-Your pre-extracted text goes here.
-"""
-
-# Define the flexible DIN-1451-H pattern
-din_pattern = re.compile(r'DIN-1451[-–\s]?H[=\s]?(\d+|\d+,\d+)')
-iso_pattern = re.compile(r'ISO 3097-BVL')
-mbn_pattern = re.compile(r'MBN')
-
-# Function to validate the extracted text
-def validate_texts(text):
-    contains_din = din_pattern.search(text)
-    contains_iso = bool(iso_pattern.search(text))
-    contains_mbn = bool(mbn_pattern.search(text))
-    
-    # Debug: print whether each pattern was found
-    print(f"Contains DIN-1451-H: {bool(contains_din)}")
-    print(f"Contains ISO 3097-BVL: {contains_iso}")
-    print(f"Contains MBN: {contains_mbn}")
-
-    if contains_din:
-        din_match = contains_din.group(1)
-        # Add your number validation logic here if needed
-        # Example of a check for the number format
-        if not re.match(r'^\d+,\d+$', din_match) and not re.match(r'^\d+$', din_match):
-            print(f"Validation Error: DIN-1451-H number format incorrect: {din_match}")
-        else:
-            print(f"DIN-1451-H number format correct: {din_match}")
-    
-    if (contains_din or contains_iso) and contains_mbn:
-        print(f"Validation Error: Text contains both DIN/ISO and MBN")
-    else:
-        print(f"Text is valid")
-
-# Process the pre-extracted text
-validate_texts(extracted_text)
-
-
-
-
-
-
-
-import re
 import json
-import base64
 import requests
 
 # Replace with your actual API URL for uploading images and getting OCR results
@@ -61,40 +14,26 @@ allowed_numbers = {'1,6', '2', '3', '4', '5', '6', '8', '10', '16', '20'}
 # Threshold for vertical distance to consider lines as part of the same label
 vertical_distance_threshold = 10  # Adjust based on your data
 
-# Function to read the image and convert to base64
-def read_image_as_base64(image_path):
-    with open(image_path, 'rb') as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-    return encoded_string
-
 # Function to upload the image and get the response
 def upload_image_and_get_text(api_url, image_path):
     try:
-        # Convert image to base64
-        base64_image = read_image_as_base64(image_path)
-        payload = {
-            "file": base64_image
-        }
-        
-        headers = {
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(api_url, json=payload, headers=headers, timeout=30)
-            
-        # Debugging: Log the request details
-        print(f"Request URL: {api_url}")
-        print(f"Request Payload: {json.dumps(payload)}")
-            
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Parse the JSON response
-            response_data = response.json()
-            return response_data
-        else:
-            print(f"Failed to fetch data from API. Status code: {response.status_code}")
-            print(f"Response Text: {response.text}")
-            return None
+        with open(image_path, 'rb') as image_file:
+            files = {'file': image_file}
+            response = requests.post(api_url, files=files, timeout=30)
+
+            # Debugging: Log the request details
+            print(f"Request URL: {api_url}")
+            print(f"Request Files: {files}")
+
+            # Check if the request was successful
+            if response.status_code == 200:
+                # Parse the JSON response
+                response_data = response.json()
+                return response_data
+            else:
+                print(f"Failed to fetch data from API. Status code: {response.status_code}")
+                print(f"Response Text: {response.text}")
+                return None
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
         return None
@@ -103,20 +42,20 @@ def upload_image_and_get_text(api_url, image_path):
 def group_lines_by_position(lines, threshold):
     grouped_lines = []
     current_group = [lines[0]]
-    
+
     for i in range(1, len(lines)):
         current_line = lines[i]
         previous_line = lines[i - 1]
-        
+
         # Calculate vertical distance
         vertical_distance = current_line['bbox'][1] - previous_line['bbox'][3]
-        
+
         if vertical_distance < threshold:
             current_group.append(current_line)
         else:
             grouped_lines.append(current_group)
             current_group = [current_line]
-    
+
     grouped_lines.append(current_group)
     return grouped_lines
 
@@ -129,7 +68,7 @@ def concatenate_grouped_lines(grouped_lines):
     return concatenated_texts
 
 # Define the flexible DIN-1451-H pattern
-din_pattern = re.compile(r'DIN-1451[-–\s]?H[=\s]?(\d+,\d+|\d+)')
+din_pattern = re.compile(r'DIN[-–\s]?1451[-–\s]?H[=\s]?(\d+,\d+|\d+)')
 iso_pattern = re.compile(r'ISO 3097-BVL')
 mbn_pattern = re.compile(r'MBN')
 
@@ -139,7 +78,7 @@ def validate_texts(texts):
         contains_din = din_pattern.search(text)
         contains_iso = bool(iso_pattern.search(text))
         contains_mbn = bool(mbn_pattern.search(text))
-        
+
         # Debug: print whether each pattern was found
         print(f"Text: {text}")
         print(f"Contains DIN-1451-H: {bool(contains_din)}")
@@ -153,7 +92,7 @@ def validate_texts(texts):
                 print(f"Validation Error: DIN-1451-H number not allowed: {din_match}")
             else:
                 print(f"DIN-1451-H number format correct: {din_match}")
-        
+
         if (contains_din or contains_iso) and contains_mbn:
             print(f"Validation Error: Text contains both DIN/ISO and MBN")
         else:
@@ -163,7 +102,7 @@ def validate_texts(texts):
 def main():
     response_data = upload_image_and_get_text(api_url, image_path)
     if response_data:
-        lines = response_data[1]  # Adjust this based on the actual structure of your response
+        lines = response_data['data']  # Adjust this based on the actual structure of your response
         grouped_lines = group_lines_by_position(lines, vertical_distance_threshold)
         concatenated_texts = concatenate_grouped_lines(grouped_lines)
         validate_texts(concatenated_texts)
