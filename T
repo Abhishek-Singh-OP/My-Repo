@@ -1,6 +1,71 @@
 import json
 import re
 
+def identify_pattern(json_file, din_numbers, iso_pattern="ISO 3097-BVL", mbن_number="MBN 50435"):
+  """
+  This function reads a JSON file containing OCR results and identifies patterns based on DIN, ISO, and MBN keywords.
+
+  Args:
+    json_file: Path to the JSON file.
+    din_numbers: List of DIN numbers to match.
+    iso_pattern: Regex pattern for ISO keyword.
+    mbn_number: MBN number to match.
+
+  Returns:
+    A list of lines that match the specified pattern.
+  """
+
+  with open(json_file, 'r') as f:
+    data = json.load(f)
+
+  # Extract text and confidence scores from the JSON data
+  lines = []
+  for line in data:
+    text = line[0]
+    confidence = line[1]
+    lines.append((text, confidence))
+
+  # Define regular expressions for matching DIN, ISO, and MBN patterns
+  din_regex = r"DIN 1418-4-H(?P<number>\d+)"
+  mbn_regex = rf"{mbن_number}"
+
+  matching_lines = []
+  for text, confidence in lines:
+    # Check for DIN pattern
+    din_match = re.search(din_regex, text)
+    if din_match and din_match.group('number') in din_numbers:
+      matching_lines.append(text)
+      continue
+
+    # Check for ISO pattern
+    if re.search(iso_pattern, text):
+      matching_lines.append(text)
+
+  # Check for invalid cases (both DIN/ISO and MBN present)
+  invalid_lines = [line for line in matching_lines if re.search(mbn_regex, line)]
+
+  return invalid_lines
+
+# Example usage
+din_numbers = ["1234", "5678"]
+invalid_lines = identify_pattern("ocr_results.json", din_numbers)
+
+if invalid_lines:
+  print("Invalid lines:")
+  for line in invalid_lines:
+    print(line)
+else:
+  print("No invalid lines found")
+
+
+
+
+
+
+
+import json
+import re
+
 # Allowed set of numbers after DIN-1451-H
 allowed_numbers = {'1,6', '2', '3', '4', '5', '6', '8', '10', '16', '20'}
 
