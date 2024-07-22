@@ -1,6 +1,45 @@
 import json
 import re
 
+# Define regex patterns
+patterns = {
+    'DIN': r'\bDIN \d{4}-\d{2}\b',
+    'ISO': r'\bISO \d{4}(-\d{2})?\b',
+    'MBN': r'\bMBN \d{5}\b'
+}
+
+# Load JSON data
+with open('your_file.json', 'r') as file:
+    data = json.load(file)
+
+def extract_and_match_text(data):
+    for item in data:
+        if isinstance(item, list):
+            # Assuming the structure is [coordinates, [text, difficulty]]
+            coordinates, text_data = item
+            if isinstance(text_data, list):
+                text, _ = text_data
+                # Check each pattern
+                for key, pattern in patterns.items():
+                    matches = re.findall(pattern, text)
+                    if matches:
+                        print(f"Pattern '{key}' found in text: {text}")
+                        for match in matches:
+                            print(f"  Match: {match}")
+
+# Call the function with your data
+extract_and_match_text(data)
+
+
+
+
+
+
+
+
+import json
+import re
+
 def identify_pattern(json_file, din_numbers, iso_pattern="ISO 3097-BVL", mbن_number="MBN 50435"):
   """
   This function reads a JSON file containing OCR results and identifies patterns based on DIN, ISO, and MBN keywords.
