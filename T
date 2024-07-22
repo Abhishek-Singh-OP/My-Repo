@@ -1,0 +1,85 @@
+import json
+import re
+
+# Allowed set of numbers after DIN-1451-H
+allowed_numbers = {'1,6', '2', '3', '4', '5', '6', '8', '10', '16', '20'}
+
+# Threshold for vertical distance to consider lines as part of the same label
+vertical_distance_threshold = 10  # Adjust based on your data
+
+# Function to read JSON data from a file
+def read_json_file(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+# Function to group lines based on vertical positioning
+def group_lines_by_position(lines, threshold):
+    grouped_lines = []
+    current_group = [lines[0]]
+
+    for i in range(1, len(lines)):
+        current_line = lines[i]
+        previous_line = lines[i - 1]
+
+        # Calculate vertical distance
+        vertical_distance = current_line['bbox'][1] - previous_line['bbox'][3]
+
+        if vertical_distance < threshold:
+            current_group.append(current_line)
+        else:
+            grouped_lines.append(current_group)
+            current_group = [current_line]
+
+    grouped_lines.append(current_group)
+    return grouped_lines
+
+# Function to concatenate grouped lines into single strings
+def concatenate_grouped_lines(grouped_lines):
+    concatenated_texts = []
+    for group in grouped_lines:
+        concatenated_text = ' '.join([line['text'] for line in group])
+        concatenated_texts.append(concatenated_text)
+    return concatenated_texts
+
+# Function to validate extracted texts
+def validate_texts(concatenated_texts):
+    for text in concatenated_texts:
+        match = re.search(r'DIN-1451-H\s*(\d+,\d+|\d+)', text)
+        if match:
+            number = match.group(1)
+            if number in allowed_numbers:
+                print(f"Valid number found: {number} in text: {text}")
+            else:
+                print(f"Invalid number found: {number} in text: {text}")
+        else:
+            print(f"No valid pattern found in text: {text}")
+
+def main():
+    file_path = 'path_to_your_json_file.json'
+    response_data = read_json_file(file_path)
+
+    # Ensure response_data is correctly formatted
+    if isinstance(response_data, list) and all(isinstance(item, list) and len(item) == 4 for item in response_data):
+        # Transform the response data to the required format
+        lines = [{'text': item[1], 'bbox': item[0]} for item in response_data]
+    else:
+        print("Unexpected item format:", response_data)
+        return
+
+    lines.sort(key=lambda x: x['bbox'][1])  # Sort by the top y-coordinate
+
+    # Group lines by position
+    grouped_lines = group_lines_by_position(lines, vertical_distance_threshold)
+
+    # Debug print to check the structure of grouped_lines
+    print("Grouped Lines:", grouped_lines)
+
+    # Concatenate grouped lines
+    concatenated_texts = concatenate_grouped_lines(grouped_lines)
+
+    # Validate texts
+    validate_texts(concatenated_texts)
+
+if __name__ == "__main__":
+    main()
