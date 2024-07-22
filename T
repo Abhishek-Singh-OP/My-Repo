@@ -25,6 +25,65 @@ def check_validity(text):
     return False  # Invalid if neither DIN nor ISO is present
 
 # Iterate through OCR results and validate
+detailed_results = []
+
+for result in ocr_results:
+    if isinstance(result, list) and len(result) >= 1:
+        for sublist in result:
+            if isinstance(sublist, list) and len(sublist) >= 2:
+                text_data = sublist[1]  # Second element in the sublist
+                if isinstance(text_data, list) and len(text_data) >= 1:
+                    text = text_data[0]  # The actual text
+                    if isinstance(text, str):
+                        is_valid = check_validity(text)
+                        detailed_results.append({
+                            'text': text,
+                            'valid': is_valid
+                        })
+
+# Output results
+valid_texts = [result for result in detailed_results if result['valid']]
+invalid_texts = [result for result in detailed_results if not result['valid']]
+
+print(f"Valid Results: {len(valid_texts)}")
+print(f"Invalid Results: {len(invalid_texts)}")
+
+# Save detailed results to JSON files
+with open('detailed_results.json', 'w') as file:
+    json.dump(detailed_results, file, indent=2)
+
+
+
+
+
+
+import json
+import re
+
+# Load the JSON file
+with open('paddle_ocr_output.json', 'r') as file:
+    ocr_results = json.load(file)
+
+# Define regex patterns
+din_pattern = re.compile(r'\bDIN\s+\d{4}-\d{1,2}-H\s*([1,6]|2|3|4|5|6|8|10|16|20)\b', re.IGNORECASE)
+iso_pattern = re.compile(r'\bISO\b', re.IGNORECASE)
+mbn_pattern = re.compile(r'\bMBN\b', re.IGNORECASE)
+
+# Function to check validity
+def check_validity(text):
+    has_din = din_pattern.search(text)
+    has_iso = iso_pattern.search(text)
+    has_mbn = mbn_pattern.search(text)
+    
+    # Check if text has DIN or ISO
+    if has_din or has_iso:
+        # Check if DIN or ISO is accompanied by MBN
+        if has_mbn:
+            return False  # Invalid if DIN or ISO is with MBN
+        return True  # Valid if DIN or ISO is not with MBN
+    return False  # Invalid if neither DIN nor ISO is present
+
+# Iterate through OCR results and validate
 valid_results = []
 invalid_results = []
 
