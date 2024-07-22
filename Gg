@@ -94,6 +94,107 @@ if __name__ == "__main__":
 
 
 
+
+
+
+
+
+import json
+import re
+
+# Allowed set of numbers after DIN-1451-H
+allowed_numbers = {'1,6', '2', '3', '4', '5', '6', '8', '10', '16', '20'}
+
+# Threshold for vertical distance to consider lines as part of the same label
+vertical_distance_threshold = 10  # Adjust based on your data
+
+# Function to read JSON data from a file
+def read_json_file(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+# Function to group lines based on vertical positioning
+def group_lines_by_position(lines, threshold):
+    grouped_lines = []
+    current_group = [lines[0]]
+
+    for i in range(1, len(lines)):
+        current_line = lines[i]
+        previous_line = lines[i - 1]
+
+        # Calculate vertical distance
+        vertical_distance = current_line['bbox'][1] - previous_line['bbox'][3]
+
+        if vertical_distance < threshold:
+            current_group.append(current_line)
+        else:
+            grouped_lines.append(current_group)
+            current_group = [current_line]
+
+    grouped_lines.append(current_group)
+    return grouped_lines
+
+# Function to concatenate grouped lines into single strings
+def concatenate_grouped_lines(grouped_lines):
+    concatenated_texts = [' '.join(line['text'] for line in group) for group in grouped_lines]
+    return concatenated_texts
+
+# Function to validate extracted texts
+def validate_texts(concatenated_texts):
+    for text in concatenated_texts:
+        if 'DIN 1451' in text:
+            # Check for H followed by allowed numbers
+            din_match = re.search(r'DIN\s1451.*?H\s*([=\-]?)\s*(\d+,\d+|\d+)', text)
+            if din_match:
+                number = din_match.group(2)
+                if number not in allowed_numbers:
+                    print(f"Invalid number after DIN-1451-H: {number} in text: {text}")
+            else:
+                print(f"Missing or malformed DIN-1451-H number in text: {text}")
+        
+        if 'ISO 3097-BVL' in text and 'MBN' in text:
+            print(f"Invalid combination of ISO 3097-BVL and MBN in text: {text}")
+
+# Function to parse the JSON structure and extract lines
+def parse_json_structure(data):
+    lines = []
+    for item in data:
+        if isinstance(item, list) and len(item) == 2:
+            bbox, rest = item[0], item[1]
+            if isinstance(rest, list):
+                text, confidence = rest[0], rest[1]
+                lines.append({'bbox': bbox, 'text': text, 'confidence': confidence})
+    return lines
+
+# Main function to execute the workflow
+def main():
+    json_file_path = 'path/to/your/json_file.json'
+    
+    response_data = read_json_file(json_file_path)
+    
+    # Extract lines from the JSON data
+    lines = parse_json_structure(response_data)
+    
+    # Ensure lines are ordered by their top coordinate
+    lines.sort(key=lambda x: x['bbox'][1])
+    
+    # Group lines by position
+    grouped_lines = group_lines_by_position(lines, vertical_distance_threshold)
+    
+    # Concatenate grouped lines
+    concatenated_texts = concatenate_grouped_lines(grouped_lines)
+    
+    # Validate texts
+    validate_texts(concatenated_texts)
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
 import json
 import re
 
