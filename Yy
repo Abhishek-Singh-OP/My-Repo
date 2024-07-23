@@ -1,3 +1,29 @@
+# Define character mappings based on possible OCR misreadings
+char_mapping = {
+    'D': '[D0O]',
+    'O': '[O0D]',
+    '0': '[0OD]',
+    'I': '[I1l|]',
+    '1': '[1lI|]',
+    '4': '[49]',
+    '5': '[5S]',
+    'S': '[S5]',
+    '9': '[94]',
+    '8': '[8B]',
+    'B': '[B8]'
+}
+
+# Create the regex pattern for the DIN format with OCR misreading considerations
+din_pattern = re.compile(
+    rf'\b{char_mapping["D"]}{char_mapping["I"]}{char_mapping["N"]}\s*1418\s*[-= ]?\s*4\s*[-= ]?\s*H\s*[-= ]?\s*(1|[lI|]|2|3|4|5|6|8|10|16|20)\b',
+    re.IGNORECASE
+)
+
+
+
+
+
+
 import json
 import re
 import requests
