@@ -1,3 +1,67 @@
+def check_validity(segments):
+    # Check if parts of DIN are found across segments
+    has_din, has_h_part, reason = find_din_parts_across_segments(segments)
+    full_text = ' '.join([segment[1][0] if isinstance(segment[1], list) else segment[1] for segment in segments])
+    
+    has_iso = iso_pattern.search(full_text)
+    has_mbn = mbn_pattern.search(full_text)
+
+    reasons = []
+    if has_din and has_h_part:
+        reasons.append(f"DIN standard valid. {reason}")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with DIN.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_iso:
+        reasons.append("ISO standard present.")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with ISO.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_mbn:
+        reasons.append("MBN standard present without DIN or ISO.")
+        return False, " ".join(reasons)
+
+    reasons.append("Neither DIN nor ISO standards are present.")
+    return False, " ".join(reasons)
+
+
+
+
+
+def find_din_parts_across_segments(segments):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+    
+    for index, segment in enumerate(segments):
+        # Extract the text from the segment
+        text = segment[1][0] if isinstance(segment[1], list) else segment[1]
+        
+        # Check for DIN part
+        if din_part_pattern.search(text):
+            has_din_part = True
+            reason += f"DIN part found in segment {index + 1}: '{text}'; "
+        
+        # Check for H part
+        if h_part_pattern.search(text):
+            has_h_part = True
+            reason += f"H part found in segment {index + 1}: '{text}'; "
+        
+        # If we find both parts, we can stop searching
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+
+
+
+
+
 def find_din_across_lines(lines):
     has_din_part = False
     has_h_part = False
