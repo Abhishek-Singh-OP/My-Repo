@@ -1,4 +1,85 @@
+import re
+
+# Regex patterns
+din_part_pattern = re.compile(r'\b[D0O][I1l|][N]\s*1418\s*[-= ]?\s*4\b', re.IGNORECASE)
+h_part_pattern = re.compile(r'\bH\s*[-= ]?\s*(1(?:,6)?|2|3|4|5|6|8|10|16|20)\b', re.IGNORECASE)
+iso_pattern = re.compile(r'\bISO\b', re.IGNORECASE)
+mbn_pattern = re.compile(r'\bMBN\b', re.IGNORECASE)
+
+def find_din_parts_across_segments(segments):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+    
+    for index, segment in enumerate(segments):
+        # Check if segment is properly formatted
+        if len(segment) < 2 or not isinstance(segment[1], list) or len(segment[1]) < 2:
+            continue
+        
+        # Extract the text from the segment
+        text = segment[1][0] if isinstance(segment[1][0], str) else ""
+        
+        # Check for DIN part
+        if din_part_pattern.search(text):
+            has_din_part = True
+            reason += f"DIN part found in segment {index + 1}: '{text}'; "
+        
+        # Check for H part
+        if h_part_pattern.search(text):
+            has_h_part = True
+            reason += f"H part found in segment {index + 1}: '{text}'; "
+        
+        # If both parts are found, break the loop
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+def check_validity(ocr_results):
+    # Flatten the nested structure and extract text
+    segments = [item for sublist in ocr_results for item in sublist]
+    
+    # Safely extract and concatenate all text segments into one string
     full_text = ' '.join(
+        segment[1][0] if len(segment) > 1 and isinstance(segment[1], list) and len(segment[1]) > 0 else ""
+        for segment in segments
+    ).strip()
+    
+    # Check for DIN and H parts across segments
+    has_din, has_h_part, reason = find_din_parts_across_segments(segments)
+    
+    # Check for ISO and MBN standards in the combined text
+    has_iso = iso_pattern.search(full_text)
+    has_mbn = mbn_pattern.search(full_text)
+
+    reasons = []
+    if has_din and has_h_part:
+        reasons.append(f"DIN standard valid. {reason}")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with DIN.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_iso:
+        reasons.append("ISO standard present.")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with ISO.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_mbn:
+        reasons.append("MBN standard present without DIN or ISO.")
+        return False, " ".join(reasons)
+
+    reasons.append("Neither DIN nor ISO standards are present.")
+    return False, " ".join(reasons)
+
+
+
+
+
+
+full_text = ' '.join(
         segment[1][0] if len(segment) > 1 and isinstance(segment[1], list) and len(segment[1]) > 0 else ""
         for segment in segments
     ).strip()
