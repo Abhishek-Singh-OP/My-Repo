@@ -1,3 +1,83 @@
+# Define regex patterns for parts
+din_part_pattern = re.compile(r'\b[D0O][I1l|][N]\s*1418\s*[-= ]?\s*4\b', re.IGNORECASE)
+h_part_pattern = re.compile(r'\bH\s*[-= ]?\s*(1|[lI|]|2|3|4|5|6|8|10|16|20|S|5|B|8)\b', re.IGNORECASE)
+
+# Function to check if DIN parts are present across lines
+def check_validity_across_lines(lines):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+    
+    for index, line in enumerate(lines):
+        # Check for DIN part
+        if din_part_pattern.search(line):
+            has_din_part = True
+            reason += "DIN part present in line: " + line + "; "
+        # Check for H part
+        if h_part_pattern.search(line):
+            has_h_part = True
+            reason += "H part present in line: " + line + "; "
+        # Check the previous and next line if necessary
+        if has_din_part and not has_h_part and index < len(lines) - 1:
+            if h_part_pattern.search(lines[index + 1]):
+                has_h_part = True
+                reason += "H part present in next line: " + lines[index + 1] + "; "
+        if has_h_part and not has_din_part and index > 0:
+            if din_part_pattern.search(lines[index - 1]):
+                has_din_part = True
+                reason += "DIN part present in previous line: " + lines[index - 1] + "; "
+
+    # Valid if both parts are found
+    is_valid = has_din_part and has_h_part
+    if is_valid:
+        return True, reason
+    return False, "DIN part or H part missing; " + reason
+
+# Example usage in your script
+def process_image(image_path):
+    # Display the image
+    Image.open(image_path).show()
+
+    ocr_results = get_ocr_results(image_path)
+    
+    # Iterate through OCR results and validate
+    detailed_results = []
+
+    for result in ocr_results:
+        if isinstance(result, list) and len(result) >= 1:
+            for sublist in result:
+                if isinstance(sublist, list) and len(sublist) >= 2:
+                    text_data = sublist[1]  # Second element in the sublist
+                    if isinstance(text_data, list) and len(text_data) >= 1:
+                        text = text_data[0]  # The actual text
+                        if isinstance(text, str):
+                            # Split text into lines and check across lines
+                            lines = text.split('\n')
+                            is_valid, reason = check_validity_across_lines(lines)
+                            detailed_results.append({
+                                'text': text,
+                                'valid': is_valid,
+                                'reason': reason
+                            })
+
+    # Output results without brackets
+    for result in detailed_results:
+        print(f"Text: {result['text']}, Valid: {result['valid']}, Reason: {result['reason']}")
+
+    # Save detailed results to JSON files
+    with open('detailed_results.json', 'w') as file:
+        json.dump(detailed_results, file, indent=2)
+
+# Example usage
+image_path = 'path_to_your_image.jpg'  # Replace with the path to your image file
+process_image(image_path)
+
+
+
+
+
+
+
 # Define character mappings based on possible OCR misreadings
 char_mapping = {
     'D': '[D0O]',
