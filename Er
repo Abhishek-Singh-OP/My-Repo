@@ -1,5 +1,85 @@
 import re
 
+# Regex patterns with debugging print statements
+din_part_pattern = re.compile(r'\b[D0O][I1l|][N]\s*1418\s*[-= ]?\s*4\b', re.IGNORECASE)
+h_part_pattern = re.compile(r'\bH\s*[-= ]?\s*(1(?:,6)?|2|3|4|5|6|8|10|16|20)\b', re.IGNORECASE)
+iso_pattern = re.compile(r'\bISO\b', re.IGNORECASE)
+mbn_pattern = re.compile(r'\bMBN\b', re.IGNORECASE)
+
+def find_din_parts_across_segments(segments):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+    
+    for index, segment in enumerate(segments):
+        if not isinstance(segment, list) or not all(isinstance(item, list) for item in segment):
+            continue
+        
+        # Reconstruct the text line from individual characters
+        text = ''.join(char[0] for char in segment if isinstance(char, list) and len(char) > 0)
+        print(f"Checking segment {index + 1}: {text}")  # Debugging print
+        
+        if din_part_pattern.search(text):
+            has_din_part = True
+            reason += f"DIN part found in segment {index + 1}: '{text}'; "
+        
+        if h_part_pattern.search(text):
+            has_h_part = True
+            reason += f"H part found in segment {index + 1}: '{text}'; "
+        
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+def check_validity(ocr_results):
+    # Flatten the nested structure and extract text
+    segments = [item for sublist in ocr_results for item in sublist]
+    
+    # Corrected text extraction: Concatenate all characters into full text
+    full_text = ' '.join(
+        ''.join(char[0] for char in word if isinstance(char, list) and len(char) > 0)
+        for word in segments if isinstance(word, list)
+    ).strip()
+    
+    print(f"Full text extracted: {full_text}")  # Debugging print
+    
+    has_din, has_h_part, reason = find_din_parts_across_segments(segments)
+    has_iso = iso_pattern.search(full_text)
+    has_mbn = mbn_pattern.search(full_text)
+
+    print(f"has_din: {has_din}, has_h_part: {has_h_part}, has_iso: {has_iso is not None}, has_mbn: {has_mbn is not None}")  # Debugging print
+
+    reasons = []
+    if has_din and has_h_part:
+        reasons.append(f"DIN standard valid. {reason}")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with DIN.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_iso:
+        reasons.append("ISO standard present.")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with ISO.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_mbn:
+        reasons.append("MBN standard present without DIN or ISO.")
+        return False, " ".join(reasons)
+
+    reasons.append("Neither DIN nor ISO standards are present.")
+    return False, " ".join(reasons)
+
+
+
+
+
+
+
+import re
+
 # Regex patterns
 din_part_pattern = re.compile(r'\b[D0O][I1l|][N]\s*1418\s*[-= ]?\s*4\b', re.IGNORECASE)
 h_part_pattern = re.compile(r'\bH\s*[-= ]?\s*(1(?:,6)?|2|3|4|5|6|8|10|16|20)\b', re.IGNORECASE)
