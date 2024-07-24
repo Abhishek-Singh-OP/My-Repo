@@ -1,3 +1,11 @@
+    full_text = ' '.join(
+        segment[1][0] if len(segment) > 1 and isinstance(segment[1], list) and len(segment[1]) > 0 else ""
+        for segment in segments
+    ).strip()
+
+
+
+
 def find_din_parts_across_segments(segments):
     has_din_part = False
     has_h_part = False
