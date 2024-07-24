@@ -1,3 +1,36 @@
+def find_din_parts_across_segments(segments):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+    
+    for index, segment in enumerate(segments):
+        if len(segment) < 2 or not isinstance(segment[1], list) or len(segment[1]) < 1:
+            # If the segment doesn't have expected text data, skip it
+            continue
+        
+        # Extract the text from the segment
+        text = segment[1][0] if isinstance(segment[1][0], str) else ""
+        
+        # Check for DIN part
+        if din_part_pattern.search(text):
+            has_din_part = True
+            reason += f"DIN part found in segment {index + 1}: '{text}'; "
+        
+        # Check for H part
+        if h_part_pattern.search(text):
+            has_h_part = True
+            reason += f"H part found in segment {index + 1}: '{text}'; "
+        
+        # If both parts are found, break the loop
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+
+
+
+
 for index, segment in enumerate(segments):
     # Extract the text from the segment
     text = segment[1][0] if isinstance(segment[1], list) else segment[1]
