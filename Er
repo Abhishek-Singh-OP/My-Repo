@@ -1,3 +1,75 @@
+def check_validity(ocr_results):
+    segments = [item for sublist in ocr_results for item in sublist]
+
+    # Extract full text and evaluate segment by segment
+    full_text = ''.join(
+        char for segment in segments for word in segment if isinstance(word, list)
+        for char in word if isinstance(char, str)
+    ).strip()
+    
+    print(f"Full text extracted: {full_text}")  # Debugging print
+    
+    has_din, has_h_part, reason = find_din_parts_across_segments(segments)
+    has_iso = iso_pattern.search(full_text)
+    has_mbn = mbn_pattern.search(full_text)
+
+    # New condition for checking adjacent lines for DIN and H parts
+    if has_din and not has_h_part:
+        # Find the line index where DIN was detected
+        for i, segment in enumerate(segments):
+            text = ''.join(char for word in segment for char in word if isinstance(char, str)).strip()
+            if din_part_pattern.search(text):
+                # Check the next line for H part
+                if i + 1 < len(segments):
+                    next_text = ''.join(char for word in segments[i + 1] for char in word if isinstance(char, str)).strip()
+                    if h_part_pattern.search(next_text):
+                        return True, "DIN part found; corresponding H part found in the next line."
+                    else:
+                        return False, "DIN part found; but no corresponding H part found in the next line."
+
+    if has_h_part and not has_din:
+        # Find the line index where H part was detected
+        for i, segment in enumerate(segments):
+            text = ''.join(char for word in segment for char in word if isinstance(char, str)).strip()
+            if h_part_pattern.search(text):
+                # Check the previous line for DIN part
+                if i - 1 >= 0:
+                    prev_text = ''.join(char for word in segments[i - 1] for char in word if isinstance(char, str)).strip()
+                    if din_part_pattern.search(prev_text):
+                        return True, "H part found; corresponding DIN part found in the previous line."
+                    else:
+                        return False, "H part found; but no corresponding DIN part found in the previous line."
+
+    print(f"has_din: {has_din}, has_h_part: {has_h_part}, has_iso: {has_iso is not None}, has_mbn: {has_mbn is not None}")  # Debugging print
+
+    reasons = []
+    if has_din and has_h_part:
+        reasons.append(f"DIN standard valid. {reason}")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with DIN.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_iso:
+        reasons.append("ISO standard present.")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with ISO.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_mbn:
+        reasons.append("MBN standard present without DIN or ISO.")
+        return False, " ".join(reasons)
+
+    reasons.append("Neither DIN nor ISO standards are present.")
+    return False, " ".join(reasons)
+
+
+
+
+
+
+
 full_text = ''.join(
     char for segment in segments for word in segment if isinstance(word, list)
     for char in word if isinstance(char, str)
