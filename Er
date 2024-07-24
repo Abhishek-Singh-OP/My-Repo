@@ -1,0 +1,105 @@
+def find_din_across_lines(lines):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+
+    for index, line in enumerate(lines):
+        # Check for DIN part
+        if din_part_pattern.search(line):
+            has_din_part = True
+            reason += f"DIN part found in line {index + 1}: '{line}'; "
+        
+        # Check for H part
+        if h_part_pattern.search(line):
+            has_h_part = True
+            reason += f"H part found in line {index + 1}: '{line}'; "
+
+        # Check the next line if needed
+        if has_din_part and not has_h_part and index < len(lines) - 1:
+            if h_part_pattern.search(lines[index + 1]):
+                has_h_part = True
+                reason += f"H part found in next line {index + 2}: '{lines[index + 1]}'; "
+
+        # Check the previous line if needed
+        if has_h_part and not has_din_part and index > 0:
+            if din_part_pattern.search(lines[index - 1]):
+                has_din_part = True
+                reason += f"DIN part found in previous line {index}: '{lines[index - 1]}'; "
+
+        # Stop searching if both parts are found
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+
+
+
+def find_din_across_lines(lines):
+    has_din_part = False
+    has_h_part = False
+    reason = ""
+
+    for index, line in enumerate(lines):
+        # Check for DIN part
+        if din_part_pattern.search(line):
+            has_din_part = True
+            reason += f"DIN part found in line {index + 1}: '{line}'; "
+        
+        # Check for H part
+        if h_part_pattern.search(line):
+            has_h_part = True
+            reason += f"H part found in line {index + 1}: '{line}'; "
+
+        # Check the next line if needed
+        if has_din_part and not has_h_part and index < len(lines) - 1:
+            if h_part_pattern.search(lines[index + 1]):
+                has_h_part = True
+                reason += f"H part found in next line {index + 2}: '{lines[index + 1]}'; "
+
+        # Check the previous line if needed
+        if has_h_part and not has_din_part and index > 0:
+            if din_part_pattern.search(lines[index - 1]):
+                has_din_part = True
+                reason += f"DIN part found in previous line {index}: '{lines[index - 1]}'; "
+
+        # Stop searching if both parts are found
+        if has_din_part and has_h_part:
+            break
+
+    return has_din_part, has_h_part, reason
+
+
+
+
+
+def check_validity(text):
+    # Split text into lines
+    lines = text.split('\n')
+    
+    # Check DIN standard across lines
+    has_din, has_h_part, din_reason = find_din_across_lines(lines)
+    has_iso = iso_pattern.search(text)
+    has_mbn = mbn_pattern.search(text)
+
+    reasons = []
+    if has_din and has_h_part:
+        reasons.append(f"DIN standard valid. {din_reason}")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with DIN.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_iso:
+        reasons.append("ISO standard present.")
+        if has_mbn:
+            reasons.append("However, MBN standard is also present, which is not allowed with ISO.")
+            return False, " ".join(reasons)
+        return True, " ".join(reasons)
+
+    if has_mbn:
+        reasons.append("MBN standard present without DIN or ISO.")
+        return False, " ".join(reasons)
+
+    reasons.append("Neither DIN nor ISO standards are present.")
+    return False, " ".join(reasons)
