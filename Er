@@ -1,3 +1,11 @@
+for index, segment in enumerate(segments):
+    # Extract the text from the segment
+    text = segment[1][0] if isinstance(segment[1], list) else segment[1]
+
+
+
+
+
 def check_validity(segments):
     # Check if parts of DIN are found across segments
     has_din, has_h_part, reason = find_din_parts_across_segments(segments)
