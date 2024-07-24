@@ -1,3 +1,14 @@
+full_text = ''.join(
+    char for segment in segments for word in segment if isinstance(word, list)
+    for char in word if isinstance(char, str)
+).strip()
+
+text = ''.join(char for item in segment for char in item if isinstance(char, str))
+
+
+
+
+
 import re
 
 # Regex patterns with debugging print statements
