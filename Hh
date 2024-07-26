@@ -1,5 +1,87 @@
 import cv2
 
+# Define color mapping for reasons
+color_map = {
+    "DIN standard valid": (0, 255, 0),  # Green
+    "ISO standard present": (255, 0, 0),  # Blue
+    "MBN standard present": (0, 0, 255),  # Red
+    "Neither DIN nor ISO standards are present": (255, 255, 255),  # White
+    "Default": (0, 0, 0)  # Black for unknown reasons
+}
+
+def draw_annotation(image, bbox, text, reason):
+    color = color_map.get(reason, color_map["Default"])
+    
+    # Draw bounding box
+    top_left = tuple(bbox[0])
+    bottom_right = tuple(bbox[2])
+    cv2.rectangle(image, top_left, bottom_right, color, 2)
+    
+    # Annotate with reason and text
+    label = f"{reason}: {text}"
+    label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+    label_top_left = (top_left[0], top_left[1] - 10)
+    label_bottom_right = (label_top_left[0] + label_size[0], label_top_left[1] + label_size[1])
+    
+    # Draw label background
+    cv2.rectangle(image, label_top_left, label_bottom_right, color, -1)
+    cv2.putText(image, label, (label_top_left[0], label_top_left[1] + label_size[1]), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+
+
+
+
+import json
+
+# Load the detailed results JSON
+with open('detailed_results.json') as f:
+    detailed_results = json.load(f)
+
+# Load the OCR results JSON
+with open('ocr_results.json') as f:
+    ocr_results = json.load(f)
+
+
+
+
+
+
+def annotate_image_with_reasons(image_path, ocr_results, detailed_results):
+    image = cv2.imread(image_path)
+
+    for result in detailed_results:
+        detailed_text = result['text']
+        valid = result['valid']
+        reason = result['reason']
+
+        # Search for the detailed_text in the OCR results
+        for segment in ocr_results:
+            if not segment or not isinstance(segment, list) or not segment[0]:
+                continue
+
+            # Extract the bounding box and text from the OCR results
+            bbox = segment[0][0]
+            text = ''.join(char for word in segment for char in word if isinstance(char, str)).strip()
+
+            # Check if the texts match
+            if detailed_text in text:
+                # Annotate the image with the matched text
+                draw_annotation(image, bbox, text, reason)
+
+    return image
+
+# Example usage
+image_path = "path/to/image.png"
+annotated_image = annotate_image_with_reasons(image_path, ocr_results, detailed_results)
+cv2.imwrite("path/to/annotated_image.png", annotated_image)
+
+
+
+
+
+import cv2
+
 # Map specific reasons to colors
 color_map = {
     "DIN standard valid": (0, 255, 0),  # Green
