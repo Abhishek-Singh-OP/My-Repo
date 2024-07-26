@@ -1,0 +1,55 @@
+import cv2
+
+# Map specific reasons to colors
+color_map = {
+    "DIN standard valid": (0, 255, 0),  # Green
+    "ISO standard present": (255, 0, 0),  # Blue
+    "MBN standard present": (0, 0, 255),  # Red
+    "Neither DIN nor ISO standards are present": (255, 255, 255),  # White
+    # Add more mappings as needed
+}
+
+def overlay_warnings_on_image(image_path, ocr_results, results):
+    image = cv2.imread(image_path)
+    
+    for i, (segment, (is_valid, reason)) in enumerate(zip(ocr_results, results)):
+        if not segment or not isinstance(segment, list) or not segment[0]:
+            continue
+        
+        # Get the bounding box coordinates and the detected text
+        bbox = segment[0][0]
+        text = ''.join(char for word in segment for char in word if isinstance(char, str)).strip()
+        
+        # Determine the color based on the reason
+        color = color_map.get(reason, (0, 0, 0))  # Default to black if reason not found
+        
+        # Draw the bounding box
+        top_left = tuple(bbox[0])
+        bottom_right = tuple(bbox[2])
+        cv2.rectangle(image, top_left, bottom_right, color, 2)
+        
+        # Annotate the image with the reason and text
+        label = f"{reason}: {text}"
+        label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        label_top_left = (top_left[0], top_left[1] - 10)
+        label_bottom_right = (label_top_left[0] + label_size[0], label_top_left[1] + label_size[1])
+        
+        # Draw label background
+        cv2.rectangle(image, label_top_left, label_bottom_right, color, -1)
+        cv2.putText(image, label, (label_top_left[0], label_top_left[1] + label_size[1]), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+    
+    return image
+
+
+# Example usage
+image_path = "path/to/image.png"
+ocr_results = [[...]]  # Your OCR results here
+results = [  # Your validity and reason results here
+    (True, "DIN standard valid"),
+    (False, "MBN standard present"),
+    # ...
+]
+
+annotated_image = overlay_warnings_on_image(image_path, ocr_results, results)
+cv2.imwrite("path/to/annotated_image.png", annotated_image)
